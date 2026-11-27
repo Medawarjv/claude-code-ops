@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Monitor de sessões</title>
+<style>
+:root{--bg:#f6f5f2;--card:#fff;--tx:#1d1c1a;--mut:#6b6862;--borda:#e4e1da;--voce:#b4561f;--voce-bg:#fbefe6;--trab:#2f6f4f;--trab-bg:#e8f3ed;--par:#8a877f;--ac:#3b5bdb}
+@media (prefers-color-scheme:dark){:root{--bg:#161614;--card:#1f1f1c;--tx:#ecebe7;--mut:#a3a098;--borda:#33322e;--voce:#f0a06a;--voce-bg:#3a2619;--trab:#7cc8a0;--trab-bg:#1b2e24;--par:#8a877f;--ac:#8fa6ff}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:baseline;padding:20px 24px 8px}
+h1{font-size:20px;margin:0}
+.resumo{color:var(--mut)}
+.demo{background:var(--ac);color:#fff;border-radius:4px;padding:2px 8px;font-size:12px}
+main{padding:8px 24px 40px;max-width:1200px}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin:24px 0 8px}
+.grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--borda);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.card.voce{border-left:4px solid var(--voce)}
+.card.trabalhando{border-left:4px solid var(--trab)}
+.topo{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.titulo{font-weight:600}
+.selo{font-size:12px;border-radius:999px;padding:2px 8px;white-space:nowrap}
+.selo.voce{background:var(--voce-bg);color:var(--voce)}
+.selo.trabalhando{background:var(--trab-bg);color:var(--trab)}
+.selo.fechar{border:1px solid var(--borda);color:var(--par)}
+.meta{color:var(--mut);font-size:12px}
+.pedido{color:var(--mut)}
+.pergunta{background:var(--voce-bg);border-radius:6px;padding:6px 8px}
+.ferr{font-family:ui-monospace,Consolas,monospace;font-size:12px;color:var(--trab)}
+.acoes{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+button{font:inherit;font-size:13px;border:1px solid var(--borda);background:transparent;color:var(--tx);border-radius:6px;padding:4px 10px;cursor:pointer}
+button:hover{border-color:var(--ac);color:var(--ac)}
+.sug{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.sug button{text-align:left}
+.pend{background:var(--card);border:1px solid var(--borda);border-radius:8px;padding:8px 12px;margin-bottom:6px}
+.vazio{color:var(--mut)}
+@media (max-width:420px){header,main{padding-left:16px;padding-right:16px}.grade{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><h1>Sessões do Claude Code</h1><span class="resumo" id="resumo">carregando…</span><span id="demo"></span></header>
+<main>
+  <h2>Precisa de você</h2><div id="pend"></div><div class="grade" id="voce"></div>
+  <h2>Trabalhando</h2><div class="grade" id="trabalhando"></div>
+  <h2>Paradas</h2><div class="grade" id="fechar"></div>
+</main>
+<script>
+const ROTULO={permissao:"pede permissão",pergunta:"perguntou",interrompida:"interrompida",respondeu:"respondeu",trabalhando:"trabalhando",parada:"parada",vazia:"vazia"};
+let TOKEN="", sugestoes={};
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const idade=t=>{const m=Math.round((Date.now()/1000-t)/60);return m<1?"agora":m<60?`há ${m} min`:`há ${Math.round(m/60)} h`};
+const k=n=>n>=1000?Math.round(n/1000)+"k":n;
+async function post(rota,corpo){const r=await fetch(rota,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:TOKEN,...corpo})});return r.json()}
+function card(s){
+  const meta=[s.pasta,s.modelo,s.contexto?`contexto ${k(s.contexto)}`:"",s.custo!=null?`US$ ${(+s.custo).toFixed(2)}`:"",idade(s.mudou)].filter(Boolean).join(" · ");
+  const ags=(s.agentes||[]).map(a=>`<div class="ferr">↳ ${esc(a.tipo)} ${esc(a.modelo)}: ${esc(a.desc)}</div>`).join("");
+  const sug=sugestoes[s.id];
+  const sugHtml=!sug?"":sug.carregando?`<div class="meta">pedindo ao Haiku…</div>`:!sug.ok?`<div class="meta">${esc(sug.erro)}</div>`:
+    `<div class="sug">${sug.respostas.map((r,i)=>`<button data-acao="levar" data-id="${s.id}" data-i="${i}"><b>${esc(r.rotulo)}:</b> ${esc(r.texto)}</button>`).join("")}<span class="meta">US$ ${(+sug.custo||0).toFixed(4)} · ${sug.seg}s</span></div>`;
+  return `<div class="card ${s.grupo}"><div class="topo"><span class="titulo">${esc(s.titulo)}</span><span class="selo ${s.grupo}">${ROTULO[s.estado]||s.estado}${s.motivo?": "+esc(s.motivo):""}</span></div>
+  <div class="meta">${esc(meta)}</div>
+  ${s.pedido?`<div class="pedido">Você: ${esc(s.pedido)}</div>`:""}
+  ${s.fala?`<div>${esc(s.fala)}</div>`:""}
+  ${s.pergunta&&s.pergunta!==s.fala?`<div class="pergunta">${esc(s.pergunta)}</div>`:""}
+  ${s.ferramenta?`<div class="ferr">⏳ ${esc(s.ferramenta)}</div>`:""}${ags}
+  <div class="acoes"><button data-acao="abrir" data-id="${s.id}">Abrir no VS Code</button>
+  ${s.grupo==="voce"?`<button data-acao="sugerir" data-id="${s.id}">Sugerir resposta (Haiku)</button>`:""}
+  <button data-acao="renomear" data-id="${s.id}">Renomear</button></div>${sugHtml}</div>`;
+}
+async function atualizar(){
+  try{
+    const d=await (await fetch("/estado.json")).json(); TOKEN=d.token;
+    const g={voce:[],trabalhando:[],fechar:[]}; d.sessoes.forEach(s=>(g[s.grupo]||g.fechar).push(s));
+    for(const n in g) document.getElementById(n).innerHTML=g[n].map(card).join("")||`<div class="vazio">nada aqui</div>`;
+    document.getElementById("pend").innerHTML=d.pendencias.map(p=>`<div class="pend">☐ ${esc(p.texto)} <span class="meta">(${esc(p.arquivo)})</span></div>`).join("");
+    document.getElementById("resumo").textContent=`${d.sessoes.length} sessões · ${g.voce.length} esperando você · ${g.trabalhando.length} trabalhando · US$ ${d.custo_total.toFixed(2)} nas abertas`;
+    document.getElementById("demo").innerHTML=d.demo?`<span class="demo">dados de demonstração</span>`:"";
+  }catch(e){document.getElementById("resumo").textContent="sem conexão com o monitor"}
+}
+document.addEventListener("click",async ev=>{
+  const b=ev.target.closest("button[data-acao]"); if(!b) return; const id=b.dataset.id;
+  if(b.dataset.acao==="abrir") await post("/vscode",{sessao:id});
+  if(b.dataset.acao==="sugerir"){sugestoes[id]={carregando:true};atualizar();sugestoes[id]=await post("/sugerir",{sessao:id});atualizar()}
+  if(b.dataset.acao==="levar"){const r=sugestoes[id].respostas[+b.dataset.i];await post("/vscode",{sessao:id,prompt:r.texto})}
+  if(b.dataset.acao==="renomear"){const t=prompt("Novo nome da aba:");if(t){await post("/renomear",{sessao:id,titulo:t});atualizar()}}
+});
+atualizar(); setInterval(atualizar,5000);
+</script>
+</body>
+</html>

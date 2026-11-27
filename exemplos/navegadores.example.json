@@ -1,0 +1,5 @@
+{
+  "padrao": { "nome": "Chrome trabalho", "id": "00000000-0000-4000-8000-000000000001" },
+  "proibidos": [ { "nome": "Navegador pessoal", "id": "00000000-0000-4000-8000-000000000002" } ],
+  "so_nas_pastas": [ { "nome": "Chrome do cliente X", "id": "00000000-0000-4000-8000-000000000003", "pastas": ["cliente-x"] } ]
+}

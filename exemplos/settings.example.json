@@ -1,0 +1,30 @@
+{
+  "statusLine": { "type": "command", "command": "python ~/.claude/hooks/uso_claude.py statusline" },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          { "type": "command", "command": "python ~/.claude/hooks/bastao.py inicio", "timeout": 10 },
+          { "type": "command", "command": "powershell.exe -NoProfile -File ~/.claude/hooks/lembretes_ativos.ps1", "timeout": 10 },
+          { "type": "command", "command": "powershell.exe -NoProfile -File ~/.claude/hooks/contas_do_dia.ps1", "timeout": 10 }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      { "hooks": [ { "type": "command", "command": "python ~/.claude/hooks/uso_claude.py prompt", "timeout": 10 } ] }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Agent",
+        "hooks": [ { "type": "command", "command": "python ~/.claude/hooks/uso_claude.py agente", "timeout": 10 } ]
+      },
+      {
+        "matcher": "mcp__claude-in-chrome__select_browser",
+        "hooks": [ { "type": "command", "command": "powershell.exe -NoProfile -File ~/.claude/hooks/checar_navegador.ps1", "timeout": 10 } ]
+      }
+    ],
+    "Stop": [
+      { "hooks": [ { "type": "command", "command": "powershell.exe -NoProfile -WindowStyle Hidden -File ~/.claude/hooks/notificar_fim.ps1", "timeout": 15, "async": true } ] }
+    ]
+  }
+}

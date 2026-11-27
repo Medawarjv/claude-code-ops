@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv/
+monitor/demo/
+monitor/config.json
+.env
+.env.*
+cookies/
+credenciais/
+*.log
+*.jsonl
+state/

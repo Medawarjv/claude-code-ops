@@ -1,0 +1,6 @@
+{
+  "porta": 8771,
+  "pasta_claude": "~/.claude",
+  "pendencias": ["~/projetos/loja/PENDENCIAS.md", "~/projetos/site/PROXIMA-SESSAO.md"],
+  "estilo_usuario": "Português do Brasil, informal e direto."
+}

@@ -4,7 +4,7 @@
 
 A small operations kit for people who run **several Claude Code sessions at once**: a local monitor that shows which sessions need you, a hand-off file between sessions, a usage meter that switches to economy mode near the weekly limit, and hooks that keep agents on the right browser profile and surface reminders and bills at session start.
 
-Built and used daily on Windows, across about 17 project folders and roughly 1,800 sessions in seven weeks (Oct–Nov 2026).
+Built and used daily on Windows, across about 17 project folders and roughly 1,800 sessions in seven weeks (Oct–Nov 2026), scheduled automated runs included. Published as a clean snapshot of my private setup.
 
 ![Session monitor with demo data](docs/monitor.png)
 
